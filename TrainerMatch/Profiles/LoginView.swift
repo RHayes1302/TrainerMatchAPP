@@ -1,18 +1,22 @@
+
 //
-//  LoginView.swift
+//  LoginView.swift (UPDATED WITH REAL AUTH)
 //  TrainerMatch
 //
-//  Created by Ramone Hayes on 2/10/26.
+//  Now uses AuthManager for real user authentication
 //
 
 import SwiftUI
 
 struct LoginView: View {
+    @ObservedObject private var authManager = AuthManager.shared
+    
     @State private var email = ""
     @State private var password = ""
     @State private var isTrainerLogin = true
     @State private var showingSignup = false
-    @State private var navigateToApp = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -89,6 +93,19 @@ struct LoginView: View {
                                 .background(Color.tmGold)
                                 .padding(.bottom, 8)
                             
+                            // Error Message
+                            if showingError {
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.red.opacity(0.1))
+                                    )
+                            }
+                            
                             // Email Field
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Email")
@@ -107,6 +124,7 @@ struct LoginView: View {
                                     .foregroundColor(.white)
                                     .keyboardType(.emailAddress)
                                     .autocapitalization(.none)
+                                    .textContentType(.emailAddress)
                             }
                             
                             // Password Field
@@ -125,6 +143,7 @@ struct LoginView: View {
                                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                                     )
                                     .foregroundColor(.white)
+                                    .textContentType(.password)
                             }
                             
                             // Forgot Password
@@ -136,9 +155,7 @@ struct LoginView: View {
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             
                             // Login Button
-                            Button(action: {
-                                navigateToApp = true
-                            }) {
+                            Button(action: handleLogin) {
                                 Text("LOGIN")
                                     .font(.system(size: 14, weight: .heavy))
                                     .foregroundColor(.black)
@@ -193,30 +210,111 @@ struct LoginView: View {
                     }
                 }
                 
-                // Hidden navigation links
-                NavigationLink(destination: destinationView(), isActive: $navigateToApp) {
-                    EmptyView()
+                // Navigate when authenticated
+                if authManager.isAuthenticated {
+                    NavigationLink(destination: destinationView(), isActive: .constant(true)) {
+                        EmptyView()
+                    }
+                    .hidden()
                 }
-                .hidden()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $showingSignup) {
+            // Pass authManager as environment object to signup views
             if isTrainerLogin {
                 TrainerSignupView()
+                    .environmentObject(authManager)
             } else {
                 ClientSignupView()
+                    .environmentObject(authManager)
             }
+        }
+        .onChange(of: authManager.isAuthenticated) { newValue in
+            // When authentication changes, dismiss any signup sheet
+            if newValue {
+                print("🔐 Authentication detected! Dismissing signup...")
+                showingSignup = false
+            }
+        }
+    }
+    
+    private func handleLogin() {
+        showingError = false
+        
+        guard !email.isEmpty && !password.isEmpty else {
+            errorMessage = "Please enter email and password"
+            showingError = true
+            return
+        }
+        
+        let success: Bool
+        if isTrainerLogin {
+            success = authManager.loginTrainer(email: email, password: password)
+        } else {
+            success = authManager.loginClient(email: email, password: password)
+        }
+        
+        if !success {
+            errorMessage = "Invalid email or password"
+            showingError = true
         }
     }
     
     @ViewBuilder
     private func destinationView() -> some View {
-        if isTrainerLogin {
-            TrainerDashboardView()
+        if authManager.currentUserRole == .trainer {
+            // TRAINER → Dashboard
+            TrainerDashboard()
+                .environmentObject(authManager)
         } else {
-            ContentView() // Client health view
+            // CLIENT → Profile
+            if let clientProfile = authManager.currentClientProfile {
+                ClientProfileMySpaceView(client: clientProfile.toClientProfile())
+                    .environmentObject(authManager)
+            } else {
+                Text("Error loading profile")
+                    .foregroundColor(.white)
+            }
         }
+    }
+}
+
+// MARK: - Extension to convert SavedClientProfile to ClientProfile
+extension SavedClientProfile {
+    func toClientProfile() -> ClientProfile {
+        print("🔄 Converting SavedClientProfile to ClientProfile")
+        print("   Name: \(fullName)")
+        print("   Goals count: \(fitnessGoals.count)")
+        
+        return ClientProfile(
+            name: fullName,
+            age: age,
+            city: city,
+            state: state,
+            memberSince: dateCreated,
+            currentTrainer: nil,
+            preferredServiceType: .inPerson,
+            fitnessLevel: fitnessLevel,
+            goals: fitnessGoals.isEmpty ? [.generalFitness] : Array(fitnessGoals),
+            startingWeight: Int(targetWeight ?? 150),
+            currentWeight: Int(targetWeight ?? 150),
+            targetWeight: Int(targetWeight ?? 150),
+            medicalConditions: medicalConditions.isEmpty ? "None" : medicalConditions,
+            injuries: injuries.isEmpty ? "None" : injuries,
+            allergies: allergies.isEmpty ? "None" : allergies,
+            medications: medications.isEmpty ? "None" : medications,
+            currentStreak: 0,
+            workoutsCompleted: 0,
+            workoutsThisWeek: 0,
+            progressPhotoCount: 0,
+            measurements: ClientProfile.ClientMeasurements(
+                chest: 0,
+                waist: 0,
+                hips: 0,
+                arms: 0
+            )
+        )
     }
 }
 

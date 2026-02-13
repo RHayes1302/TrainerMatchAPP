@@ -1,14 +1,16 @@
-//
-//  TrainerSignupView.swift
-//  TrainerMatch
-//
-//  Created by Ramone Hayes on 2/10/26.
-//
+//import SwiftUI
+
+
+
+
+
 
 import SwiftUI
 import PhotosUI
 
 struct TrainerSignupView: View {
+    @ObservedObject private var authManager = AuthManager.shared
+    
     @State private var businessName = ""
     @State private var firstName = ""
     @State private var lastName = ""
@@ -35,10 +37,9 @@ struct TrainerSignupView: View {
     @State private var selectedSpecialties: Set<TrainerSpecialty> = []
     @State private var selectedServiceTypes: Set<ServiceType> = []
     
-    // Certifications
-    @State private var certification1 = ""
-    @State private var certification2 = ""
-    @State private var certification3 = ""
+    // Certifications & Schools
+    @State private var selectedCertifications: Set<TrainerCertification> = []
+    @State private var selectedSchools: Set<TrainingSchool> = []
     
     // Agreement
     @State private var agreedToTerms = false
@@ -49,143 +50,8 @@ struct TrainerSignupView: View {
     
     var body: some View {
         ZStack {
-            // Black background
             Color.black.ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 16) {
-                        // Logo
-                        TrainerMatchLogo(size: .medium)
-                            .shadow(color: .tmGold.opacity(0.3), radius: 15, x: 0, y: 5)
-                        
-                        Text("Join TrainerMatch")
-                            .font(.system(size: 32, weight: .bold))
-                            .italic()
-                            .foregroundColor(.white)
-                        
-                        Text("Start growing your fitness business today")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .padding(.top, 40)
-                    .padding(.bottom, 30)
-                    
-                    // Form Card
-                    VStack(spacing: 24) {
-                        // Section Tabs
-                        HStack(spacing: 0) {
-                            SectionTab(title: "Basic", number: 1, isActive: currentSection == 0)
-                                .onTapGesture { currentSection = 0 }
-                            
-                            SectionTab(title: "Professional", number: 2, isActive: currentSection == 1)
-                                .onTapGesture { currentSection = 1 }
-                            
-                            SectionTab(title: "Services", number: 3, isActive: currentSection == 2)
-                                .onTapGesture { currentSection = 2 }
-                        }
-                        
-                        // Form Content
-                        switch currentSection {
-                        case 0:
-                            BasicInfoSection(
-                                businessName: $businessName,
-                                firstName: $firstName,
-                                lastName: $lastName,
-                                email: $email,
-                                phoneNumber: $phoneNumber,
-                                password: $password,
-                                confirmPassword: $confirmPassword,
-                                city: $city,
-                                state: $state,
-                                selectedPhoto: $selectedPhoto,
-                                profileImage: $profileImage
-                            )
-                        case 1:
-                            ProfessionalInfoSection(
-                                yearsOfExperience: $yearsOfExperience,
-                                hourlyRate: $hourlyRate,
-                                monthlyRate: $monthlyRate,
-                                bio: $bio,
-                                certification1: $certification1,
-                                certification2: $certification2,
-                                certification3: $certification3
-                            )
-                        case 2:
-                            ServicesSection(
-                                selectedSpecialties: $selectedSpecialties,
-                                selectedServiceTypes: $selectedServiceTypes,
-                                agreedToTerms: $agreedToTerms
-                            )
-                        default:
-                            EmptyView()
-                        }
-                        
-                        // Navigation Buttons
-                        HStack(spacing: 12) {
-                            if currentSection > 0 {
-                                Button(action: {
-                                    withAnimation {
-                                        currentSection -= 1
-                                    }
-                                }) {
-                                    Text("BACK")
-                                        .font(.system(size: 14, weight: .heavy))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 25)
-                                                .stroke(Color.tmGold, lineWidth: 2)
-                                        )
-                                }
-                            }
-                            
-                            if currentSection < 2 {
-                                Button(action: {
-                                    withAnimation {
-                                        currentSection += 1
-                                    }
-                                }) {
-                                    Text("NEXT")
-                                        .font(.system(size: 14, weight: .heavy))
-                                        .foregroundColor(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 25)
-                                                .fill(Color.tmGold)
-                                        )
-                                }
-                            } else {
-                                Button(action: {
-                                    submitRegistration()
-                                }) {
-                                    Text("CREATE ACCOUNT")
-                                        .font(.system(size: 14, weight: .heavy))
-                                        .foregroundColor(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 25)
-                                                .fill(isFormValid ? Color.tmGold : Color.gray.opacity(0.5))
-                                        )
-                                }
-                                .disabled(!isFormValid)
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white.opacity(0.1))
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
-                }
-            }
+            mainContent
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -200,19 +66,198 @@ struct TrainerSignupView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .alert("Welcome to TrainerMatch!", isPresented: $showingSuccess) {
-            Button("Get Started", role: .cancel) {
-                dismiss()
-            }
+            Button("Get Started", role: .cancel) {}
         } message: {
-            Text("Your account has been created successfully! Start connecting with clients today.")
+            Text("Your account has been created successfully!")
         }
-        .onChange(of: selectedPhoto) { newValue in
+        .onChange(of: selectedPhoto) {
             Task {
-                if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     if let uiImage = UIImage(data: data) {
                         profileImage = Image(uiImage: uiImage)
                     }
                 }
+            }
+        }
+    }
+    
+    private var mainContent: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                headerSection
+                formCard
+            }
+        }
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 16) {
+            TrainerMatchLogo(size: .medium)
+                .shadow(color: .tmGold.opacity(0.3), radius: 15, x: 0, y: 5)
+            
+            Text("Join TrainerMatch")
+                .font(.system(size: 32, weight: .bold))
+                .italic()
+                .foregroundColor(.white)
+            
+            Text("Start growing your fitness business today")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.8))
+        }
+        .padding(.top, 40)
+        .padding(.bottom, 30)
+    }
+    
+    private var formCard: some View {
+        VStack(spacing: 24) {
+            sectionTabs
+            formContent
+            navigationButtons
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.1))
+        )
+        .padding(.horizontal, 20)
+        .padding(.bottom, 40)
+    }
+    
+    private var sectionTabs: some View {
+        HStack(spacing: 0) {
+            SectionTab(title: "Basic", number: 1, isActive: currentSection == 0)
+                .onTapGesture { currentSection = 0 }
+            
+            SectionTab(title: "Professional", number: 2, isActive: currentSection == 1)
+                .onTapGesture { currentSection = 1 }
+            
+            SectionTab(title: "Services", number: 3, isActive: currentSection == 2)
+                .onTapGesture { currentSection = 2 }
+        }
+    }
+    
+    private var formContent: some View {
+        VStack {
+            if currentSection == 0 {
+                BasicInfoSection(
+                    businessName: $businessName,
+                    firstName: $firstName,
+                    lastName: $lastName,
+                    email: $email,
+                    phoneNumber: $phoneNumber,
+                    password: $password,
+                    confirmPassword: $confirmPassword,
+                    city: $city,
+                    state: $state,
+                    selectedPhoto: $selectedPhoto,
+                    profileImage: $profileImage
+                )
+            } else if currentSection == 1 {
+                ProfessionalInfoSection(
+                    yearsOfExperience: $yearsOfExperience,
+                    hourlyRate: $hourlyRate,
+                    monthlyRate: $monthlyRate,
+                    bio: $bio,
+                    selectedCertifications: $selectedCertifications,
+                    selectedSchools: $selectedSchools
+                )
+            } else if currentSection == 2 {
+                ServicesSection(
+                    selectedSpecialties: $selectedSpecialties,
+                    selectedServiceTypes: $selectedServiceTypes,
+                    agreedToTerms: $agreedToTerms
+                )
+            }
+        }
+    }
+    
+    private var navigationButtons: some View {
+        HStack(spacing: 12) {
+            if currentSection > 0 {
+                backButton
+            }
+            
+            if currentSection < 2 {
+                nextButton
+            } else {
+                createAccountButton
+            }
+        }
+        .padding(.top, 8)
+    }
+    
+    private var backButton: some View {
+        Button(action: {
+            withAnimation {
+                currentSection -= 1
+            }
+        }) {
+            Text("BACK")
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .stroke(Color.tmGold, lineWidth: 2)
+                )
+        }
+    }
+    
+    private var nextButton: some View {
+        Button(action: {
+            withAnimation {
+                currentSection += 1
+            }
+        }) {
+            Text("NEXT")
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color.tmGold)
+                )
+        }
+    }
+    
+    private var createAccountButton: some View {
+        VStack(spacing: 8) {
+            Button(action: submitRegistration) {
+                Text("CREATE ACCOUNT")
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(isFormValid ? Color.tmGold : Color.gray.opacity(0.5))
+                    )
+            }
+            .disabled(!isFormValid)
+            
+            // Debug text - REMOVE THIS LATER
+            Text("Valid: \(isFormValid ? "YES" : "NO")")
+                .font(.caption)
+                .foregroundColor(isFormValid ? .green : .red)
+            
+            if !isFormValid {
+                VStack(alignment: .leading, spacing: 4) {
+                    if firstName.isEmpty { Text("❌ First Name").font(.caption).foregroundColor(.red) }
+                    if lastName.isEmpty { Text("❌ Last Name").font(.caption).foregroundColor(.red) }
+                    if email.isEmpty { Text("❌ Email").font(.caption).foregroundColor(.red) }
+                    if password.isEmpty { Text("❌ Password").font(.caption).foregroundColor(.red) }
+                    if password != confirmPassword { Text("❌ Passwords don't match").font(.caption).foregroundColor(.red) }
+                    if city.isEmpty { Text("❌ City").font(.caption).foregroundColor(.red) }
+                    if state.isEmpty { Text("❌ State").font(.caption).foregroundColor(.red) }
+                    if yearsOfExperience.isEmpty { Text("❌ Years of Experience").font(.caption).foregroundColor(.red) }
+                    if hourlyRate.isEmpty && monthlyRate.isEmpty { Text("❌ Need hourly OR monthly rate").font(.caption).foregroundColor(.red) }
+                    if selectedSpecialties.isEmpty { Text("❌ Select a specialty").font(.caption).foregroundColor(.red) }
+                    if selectedServiceTypes.isEmpty { Text("❌ Select a service type").font(.caption).foregroundColor(.red) }
+                    if !agreedToTerms { Text("❌ Check Terms agreement").font(.caption).foregroundColor(.red) }
+                }
+                .padding(.top, 8)
             }
         }
     }
@@ -227,7 +272,35 @@ struct TrainerSignupView: View {
     }
     
     private func submitRegistration() {
-        showingSuccess = true
+        print("🔵 CREATE ACCOUNT BUTTON TAPPED!")
+        print("📧 Email: \(email)")
+        print("👤 Name: \(firstName) \(lastName)")
+        
+        let success = authManager.registerTrainer(
+            businessName: businessName.isEmpty ? nil : businessName,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            password: password,
+            city: city,
+            state: state,
+            yearsOfExperience: yearsOfExperience,
+            hourlyRate: hourlyRate,
+            monthlyRate: monthlyRate,
+            bio: bio,
+            certifications: selectedCertifications,
+            schools: selectedSchools,
+            specialties: selectedSpecialties,
+            serviceTypes: selectedServiceTypes
+        )
+        
+        if success {
+            print("✅ REGISTRATION SUCCESS!")
+            print("🔐 isAuthenticated: \(authManager.isAuthenticated)")
+            showingSuccess = true
+        } else {
+            print("❌ REGISTRATION FAILED")
+        }
     }
 }
 
@@ -279,7 +352,6 @@ struct BasicInfoSection: View {
                 .foregroundColor(.tmGold)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Profile Photo Upload
             VStack(spacing: 12) {
                 Text("Profile Photo")
                     .font(.subheadline)
@@ -367,145 +439,306 @@ struct ProfessionalInfoSection: View {
     @Binding var hourlyRate: String
     @Binding var monthlyRate: String
     @Binding var bio: String
-    @Binding var certification1: String
-    @Binding var certification2: String
-    @Binding var certification3: String
+    @Binding var selectedCertifications: Set<TrainerCertification>
+    @Binding var selectedSchools: Set<TrainingSchool>
     
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Professional Details")
-                .font(.headline)
-                .foregroundColor(.tmGold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // Years of Experience
-            FormField(label: "Years of Experience *", text: $yearsOfExperience, placeholder: "10", keyboardType: .numberPad)
-            
-            Divider()
-                .background(Color.white.opacity(0.2))
-                .padding(.vertical, 8)
-            
-            // Pricing Section
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Pricing")
+        ScrollView {
+            VStack(spacing: 16) {
+                Text("Professional Details")
                     .font(.headline)
                     .foregroundColor(.tmGold)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text("Set your rates based on training type")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                FormField(label: "Years of Experience *", text: $yearsOfExperience, placeholder: "10", keyboardType: .numberPad)
                 
-                // Hourly Rate (In-Person)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "person.2.fill")
-                            .font(.caption)
-                            .foregroundColor(.tmGold)
-                        Text("In-Person Training")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    }
-                    
-                    FormField(
-                        label: "Hourly Rate ($)",
-                        text: $hourlyRate,
-                        placeholder: "75",
-                        keyboardType: .numberPad
-                    )
-                    
-                    Text("Your rate per hour for in-person training sessions")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.tmGold.opacity(0.3), lineWidth: 1)
-                        )
-                )
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.vertical, 8)
                 
-                // Monthly Rate (Virtual)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "video.fill")
-                            .font(.caption)
-                            .foregroundColor(.tmGold)
-                        Text("Virtual Training")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    }
-                    
-                    FormField(
-                        label: "Monthly Rate ($)",
-                        text: $monthlyRate,
-                        placeholder: "200",
-                        keyboardType: .numberPad
-                    )
-                    
-                    Text("Your monthly rate for virtual training programs")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.tmGold.opacity(0.3), lineWidth: 1)
-                        )
-                )
+                pricingSection
                 
-                Text("💡 Tip: Fill in rates for the service types you offer")
-                    .font(.caption)
-                    .foregroundColor(.tmGold.opacity(0.8))
-                    .italic()
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.vertical, 8)
+                
+                bioSection
+                
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.vertical, 8)
+                
+                certificationsSection
+                
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.vertical, 8)
+                
+                schoolsSection
             }
+        }
+    }
+    
+    private var pricingSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Pricing")
+                .font(.headline)
+                .foregroundColor(.tmGold)
             
-            Divider()
-                .background(Color.white.opacity(0.2))
-                .padding(.vertical, 8)
+            Text("Set your rates based on training type")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Bio/About You *")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.tmGold)
+                    Text("In-Person Training")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
                 
-                TextEditor(text: $bio)
-                    .frame(height: 100)
-                    .padding(8)
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .foregroundColor(.white)
+                FormField(label: "Hourly Rate ($)", text: $hourlyRate, placeholder: "75", keyboardType: .numberPad)
                 
-                Text("Tell potential clients about your background and training philosophy")
+                Text("Your rate per hour for in-person training sessions")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.5))
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.tmGold.opacity(0.3), lineWidth: 1)
+                    )
+            )
             
-            Divider()
-                .background(Color.white.opacity(0.2))
-                .padding(.vertical, 8)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "video.fill")
+                        .font(.caption)
+                        .foregroundColor(.tmGold)
+                    Text("Virtual Training")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
+                
+                FormField(label: "Monthly Rate ($)", text: $monthlyRate, placeholder: "200", keyboardType: .numberPad)
+                
+                Text("Your monthly rate for virtual training programs")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.tmGold.opacity(0.3), lineWidth: 1)
+                    )
+            )
             
+            Text("💡 Tip: Fill in rates for the service types you offer")
+                .font(.caption)
+                .foregroundColor(.tmGold.opacity(0.8))
+                .italic()
+        }
+    }
+    
+    private var bioSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Bio/About You *")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+            
+            TextEditor(text: $bio)
+                .frame(height: 100)
+                .padding(8)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+                .foregroundColor(.white)
+            
+            Text("Tell potential clients about your background and training philosophy")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+        }
+    }
+    
+    private var certificationsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Certifications")
                 .font(.headline)
                 .foregroundColor(.tmGold)
-                .frame(maxWidth: .infinity, alignment: .leading)
             
-            FormField(label: "Certification 1", text: $certification1, placeholder: "e.g., NASM-CPT")
-            FormField(label: "Certification 2 (Optional)", text: $certification2, placeholder: "e.g., ACE-CPT")
-            FormField(label: "Certification 3 (Optional)", text: $certification3, placeholder: "e.g., Precision Nutrition")
+            Text("Select all that apply")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+            
+            VStack(alignment: .leading, spacing: 16) {
+                CertificationCategorySection(
+                    title: "General CPT",
+                    certs: TrainerCertification.allCases.filter { $0.category == "General CPT" },
+                    selected: $selectedCertifications
+                )
+                
+                CertificationCategorySection(
+                    title: "Specialty Certifications",
+                    certs: TrainerCertification.allCases.filter { $0.category == "Specialty" },
+                    selected: $selectedCertifications
+                )
+                
+                CertificationCategorySection(
+                    title: "Yoga & Pilates",
+                    certs: TrainerCertification.allCases.filter { $0.category == "Yoga/Pilates" },
+                    selected: $selectedCertifications
+                )
+                
+                CertificationCategorySection(
+                    title: "Special Populations",
+                    certs: TrainerCertification.allCases.filter { $0.category == "Special Populations" },
+                    selected: $selectedCertifications
+                )
+                
+                CertificationCategorySection(
+                    title: "Other",
+                    certs: TrainerCertification.allCases.filter { $0.category == "Other" },
+                    selected: $selectedCertifications
+                )
+            }
+        }
+    }
+    
+    private var schoolsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Training & Education")
+                .font(.headline)
+                .foregroundColor(.tmGold)
+            
+            Text("Where did you get certified? (Optional)")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(TrainingSchool.allCases, id: \.self) { school in
+                    SchoolSelectionButton(
+                        school: school,
+                        isSelected: selectedSchools.contains(school),
+                        action: {
+                            if selectedSchools.contains(school) {
+                                selectedSchools.remove(school)
+                            } else {
+                                selectedSchools.insert(school)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Certification Category Section
+struct CertificationCategorySection: View {
+    let title: String
+    let certs: [TrainerCertification]
+    @Binding var selected: Set<TrainerCertification>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.tmGold.opacity(0.8))
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(certs, id: \.self) { cert in
+                    CertificationButton(
+                        cert: cert,
+                        isSelected: selected.contains(cert),
+                        action: {
+                            if selected.contains(cert) {
+                                selected.remove(cert)
+                            } else {
+                                selected.insert(cert)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Certification Button
+struct CertificationButton: View {
+    let cert: TrainerCertification
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(cert.rawValue)
+                .font(.caption)
+                .fontWeight(isSelected ? .semibold : .regular)
+                .foregroundColor(isSelected ? .black : .white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSelected ? Color.tmGold : Color.white.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(isSelected ? Color.tmGold : Color.white.opacity(0.2), lineWidth: 1.5)
+                        )
+                )
+        }
+    }
+}
+
+// MARK: - School Selection Button
+struct SchoolSelectionButton: View {
+    let school: TrainingSchool
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: school.icon)
+                    .font(.caption2)
+                    .foregroundColor(isSelected ? .black : .tmGold.opacity(0.7))
+                
+                Text(school.rawValue)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .black : .white)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.6)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 60)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.tmGold : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? Color.tmGold : Color.white.opacity(0.2), lineWidth: 1.5)
+                    )
+            )
         }
     }
 }
@@ -581,7 +814,6 @@ struct ServicesSection: View {
                 .background(Color.white.opacity(0.2))
                 .padding(.vertical, 8)
             
-            // Terms Agreement
             HStack(alignment: .top, spacing: 8) {
                 Button(action: {
                     agreedToTerms.toggle()

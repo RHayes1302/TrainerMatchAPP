@@ -1,8 +1,8 @@
 //
-//  StepCardView.swift
-//  TrainerMatch
+//  StepCard.swift
+//  HealthTracker
 //
-//  Created by Ramone Hayes on 2/10/26.
+//  Created by Ramone Hayes on 2/3/26.
 //
 
 import SwiftUI
@@ -12,62 +12,38 @@ struct StepCardView: View {
     let steps: Int
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            // Header with TrainerMatch Logo
-            HStack {
-                TrainerMatchLogo(size: .small)
-                    .shadow(color: .tmGold.opacity(0.2), radius: 5, x: 0, y: 2)
-                
-                Spacer()
-                
+        VStack(alignment: .leading, spacing: 15){
+            HStack{
                 Image(systemName: "figure.walk.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.tmGold)
+                    .foregroundColor(Color(red: 212/255, green: 175/255, blue: 55/255))
+                
+                Text("Steps Today")
+                    .font(.headline)
+                
+                Spacer()
             }
             
-            // Title
-            Text("Steps Today")
-                .font(.headline)
-                .foregroundColor(.primary)
-            
-            // Steps Count
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline){
                 Text("\(steps)")
                     .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.tmGold)
+                    .foregroundColor(.white)
                 
                 Text("steps")
                     .font(.title3)
                     .foregroundColor(.gray)
             }
             
-            // Progress Bar
             ProgressView(value: Double(steps), total: Double(goal))
-                .tint(.tmGold)
+                .tint(Color(red: 212/255, green: 175/255, blue: 55/255))
             
-            // Goal Text
-            Text("Goal \(goal.formatted()) steps")
+            Text("Go for Gold! \(goal) steps")
                 .font(.caption)
                 .foregroundColor(.gray)
         }
         .padding()
-        .background(
-            LinearGradient(
-                colors: [Color.white, Color(.systemGray6)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color.black)
         .cornerRadius(15)
-        .overlay(
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(Color.tmGold.opacity(0.2), lineWidth: 1)
-        )
-        .shadow(color: .tmGold.opacity(0.1), radius: 10, x: 0, y: 5)
+        .shadow(color: Color(red: 212/255, green: 175/255, blue: 55/255).opacity(0.5), radius: 5, x: 0, y: 3)
     }
-}
-
-#Preview {
-    StepCardView(steps: 7551)
-        .padding()
 }

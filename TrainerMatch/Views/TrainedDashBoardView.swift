@@ -74,7 +74,7 @@ struct TrainerDashboardView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(filteredClients) { client in
-                            NavigationLink(destination: ClientDetailView(client: client, trainerVM: trainerVM)) {
+                            NavigationLink(destination: EnhancedClientDetailView(trainerViewModel: trainerVM, client: client)) {
                                 ClientCardView(client: client, stats: trainerVM.getClientStats(for: client))
                             }
                             .buttonStyle(PlainButtonStyle())

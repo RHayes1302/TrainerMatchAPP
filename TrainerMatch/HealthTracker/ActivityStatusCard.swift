@@ -1,68 +1,54 @@
 //
 //  ActivityStatusCard.swift
-//  TrainerMatch
+//  HealthTracker
 //
-//  Created by Ramone Hayes on 2/10/26.
+//  Created by Ramone Hayes on 2/3/26.
 //
 
 import SwiftUI
 
-struct ActivityStatusCard:View {
-    let activityStatus:String
-    let authStatus:String
-    let isAuthorized:Bool
+struct ActivityStatusCard: View {
+    let activityStatus: String
+    let authStatus: String
+    let isAuthorized: Bool
     
     var body: some View {
-        
-        
-        VStack(alignment: .leading,spacing: 15){
+        VStack(alignment: .leading, spacing: 15){
             HStack{
                 Image(systemName: "heart.circle.fill")
                     .font(.title2)
-                    .foregroundColor(Color.red)
+                    .foregroundColor(Color(red: 212/255, green: 175/255, blue: 55/255))
                 
                 Text("Activity Status")
                     .font(.headline)
                 Spacer()
-                
-                
             }
+            
             HStack{
                 Text("Status")
                     .font(.body)
                     .foregroundColor(Color.gray)
                 
-                    Text(activityStatus)
+                Text(activityStatus)
                     .font(.body)
                     .fontWeight(.semibold)
-                    .foregroundColor(Color.primary)
-                
-                
+                    .foregroundColor(.white)
             }
             
             HStack{
                 Text("Authorization status")
                     .font(.body)
                     .foregroundColor(Color.gray)
+                
                 Text(authStatus)
                     .font(.body)
                     .fontWeight(.semibold)
                     .foregroundColor(isAuthorized ? .green : .orange)
             }
-            
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.black)
         .cornerRadius(15)
+        .shadow(color: Color(red: 212/255, green: 175/255, blue: 55/255).opacity(0.5), radius: 5, x: 0, y: 3)
     }
-}
-
-
-#Preview {
-    VStack(spacing:20){
-        // State 1
-        ActivityStatusCard(activityStatus: "Active", authStatus: "Authorized", isAuthorized: true)
-        // State 2
-        ActivityStatusCard(activityStatus: "Sendentary", authStatus: "Not Requested", isAuthorized: false)
-    }.padding()
 }

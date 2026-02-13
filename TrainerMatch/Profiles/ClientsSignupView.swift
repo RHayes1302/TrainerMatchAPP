@@ -5,6 +5,13 @@
 //  Created by Ramone Hayes on 2/10/26.
 //
 
+//
+//  ClientsSignupView.swift
+//  TrainerMatch
+//
+//  Created by Ramone Hayes on 2/10/26.
+//
+
 import SwiftUI
 import PhotosUI
 
@@ -160,6 +167,7 @@ struct ClientSignupView: View {
                                         )
                                 }
                             } else {
+                                // CREATE ACCOUNT Button
                                 Button(action: {
                                     submitRegistration()
                                 }) {
@@ -174,6 +182,65 @@ struct ClientSignupView: View {
                                         )
                                 }
                                 .disabled(!isFormValid)
+                                
+                                // Validation Feedback
+                                if !isFormValid {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Please complete the following:")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.red.opacity(0.9))
+                                            .padding(.bottom, 4)
+                                        
+                                        if firstName.isEmpty { 
+                                            Text("• First Name")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if lastName.isEmpty { 
+                                            Text("• Last Name")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if email.isEmpty { 
+                                            Text("• Email Address")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if password.isEmpty { 
+                                            Text("• Password")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if !password.isEmpty && password != confirmPassword { 
+                                            Text("• Passwords must match")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if city.isEmpty { 
+                                            Text("• City")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if state.isEmpty { 
+                                            Text("• State")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if selectedGoals.isEmpty { 
+                                            Text("• Select at least one fitness goal")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                        if !agreedToTerms { 
+                                            Text("• Agree to Terms of Service")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8)) 
+                                        }
+                                    }
+                                    .padding(.top, 12)
+                                    .padding(.horizontal, 4)
+                                }
                             }
                         }
                         .padding(.top, 8)
@@ -207,9 +274,9 @@ struct ClientSignupView: View {
         } message: {
             Text("Your account has been created! Start finding your perfect trainer today.")
         }
-        .onChange(of: selectedPhoto) { newValue in
+        .onChange(of: selectedPhoto) {
             Task {
-                if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     if let uiImage = UIImage(data: data) {
                         profileImage = Image(uiImage: uiImage)
                     }
@@ -226,7 +293,38 @@ struct ClientSignupView: View {
     }
     
     private func submitRegistration() {
-        showingSuccess = true
+        print("🔵 Starting client registration...")
+        print("📧 Email: \(email)")
+        print("👤 Name: \(firstName) \(lastName)")
+        
+        let success = AuthManager.shared.registerClient(
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            password: password,
+            city: city,
+            state: state,
+            birthDate: birthDate,
+            fitnessGoals: selectedGoals,
+            fitnessLevel: fitnessLevel.rawValue,
+            targetWeight: targetWeight,
+            medicalConditions: medicalConditions,
+            injuries: injuries,
+            allergies: allergies,
+            medications: medications
+        )
+        
+        if success {
+            print("✅ Registration SUCCESS! Auto-login happened.")
+            showingSuccess = true
+            // The sheet will dismiss after success alert
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                dismiss()
+            }
+        } else {
+            print("❌ Registration FAILED - Email \(email) already exists")
+            // TODO: Show error to user
+        }
     }
 }
 
@@ -380,6 +478,14 @@ struct ClientGoalsSection: View {
     @Binding var fitnessLevel: FitnessLevel
     @Binding var preferredServiceType: ServiceType
     
+    // Group goals by category for better organization
+    let weightGoals: [FitnessGoal] = [.weightLoss, .toneUp, .muscleGain, .bodyRecomposition]
+    let healthGoals: [FitnessGoal] = [.generalFitness, .improveHealth, .heartHealth, .betterSleep, .increaseEnergy, .stressRelief]
+    let performanceGoals: [FitnessGoal] = [.athleticPerformance, .increaseStrength, .buildEndurance, .improveSpeed]
+    let flexibilityGoals: [FitnessGoal] = [.flexibility, .rehabilitation, .preventInjury, .posture]
+    let lifestyleGoals: [FitnessGoal] = [.wedding, .postPregnancy, .seniorFitness, .sportSpecific]
+    let supportGoals: [FitnessGoal] = [.nutrition, .accountability, .learnProperForm, .buildConfidence]
+    
     var body: some View {
         VStack(spacing: 16) {
             Text("Fitness Goals")
@@ -393,25 +499,62 @@ struct ClientGoalsSection: View {
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                 
-                Text("Select all that apply")
+                Text("Select all that apply - Choose what matters most to you")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.6))
                 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(FitnessGoal.allCases, id: \.self) { goal in
-                        GoalSelectionButton(
-                            goal: goal,
-                            isSelected: selectedGoals.contains(goal),
-                            action: {
-                                if selectedGoals.contains(goal) {
-                                    selectedGoals.remove(goal)
-                                } else {
-                                    selectedGoals.insert(goal)
-                                }
-                            }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Weight Management
+                        GoalCategorySection(
+                            title: "Weight & Body Composition",
+                            icon: "scalemass.fill",
+                            goals: weightGoals,
+                            selectedGoals: $selectedGoals
+                        )
+                        
+                        // Health & Wellness
+                        GoalCategorySection(
+                            title: "Health & Wellness",
+                            icon: "heart.fill",
+                            goals: healthGoals,
+                            selectedGoals: $selectedGoals
+                        )
+                        
+                        // Performance
+                        GoalCategorySection(
+                            title: "Athletic Performance",
+                            icon: "figure.run",
+                            goals: performanceGoals,
+                            selectedGoals: $selectedGoals
+                        )
+                        
+                        // Flexibility & Recovery
+                        GoalCategorySection(
+                            title: "Flexibility & Recovery",
+                            icon: "figure.yoga",
+                            goals: flexibilityGoals,
+                            selectedGoals: $selectedGoals
+                        )
+                        
+                        // Lifestyle & Events
+                        GoalCategorySection(
+                            title: "Lifestyle & Special Events",
+                            icon: "star.fill",
+                            goals: lifestyleGoals,
+                            selectedGoals: $selectedGoals
+                        )
+                        
+                        // Support & Guidance
+                        GoalCategorySection(
+                            title: "Support & Guidance",
+                            icon: "person.2.fill",
+                            goals: supportGoals,
+                            selectedGoals: $selectedGoals
                         )
                     }
                 }
+                .frame(maxHeight: 400)
             }
             
             FormField(label: "Target Weight (Optional)", text: $targetWeight, placeholder: "150 lbs")
@@ -616,6 +759,45 @@ struct HealthTextArea: View {
     }
 }
 
+// MARK: - Goal Category Section
+struct GoalCategorySection: View {
+    let title: String
+    let icon: String
+    let goals: [FitnessGoal]
+    @Binding var selectedGoals: Set<FitnessGoal>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundColor(.tmGold)
+                    .font(.caption)
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.tmGold)
+            }
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(goals, id: \.self) { goal in
+                    GoalSelectionButton(
+                        goal: goal,
+                        isSelected: selectedGoals.contains(goal),
+                        action: {
+                            if selectedGoals.contains(goal) {
+                                selectedGoals.remove(goal)
+                            } else {
+                                selectedGoals.insert(goal)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK: - Goal Selection Button
 struct GoalSelectionButton: View {
     let goal: FitnessGoal
@@ -624,17 +806,29 @@ struct GoalSelectionButton: View {
     
     var body: some View {
         Button(action: action) {
-            Text(goal.rawValue)
-                .font(.caption)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundColor(isSelected ? .black : .white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color.tmGold : Color.white.opacity(0.1))
-                )
+            HStack(spacing: 8) {
+                Image(systemName: goal.icon)
+                    .font(.caption2)
+                    .foregroundColor(isSelected ? .black : .tmGold.opacity(0.7))
+                
+                Text(goal.rawValue)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .black : .white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.tmGold : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? Color.tmGold : Color.white.opacity(0.2), lineWidth: 1.5)
+                    )
+            )
         }
     }
 }

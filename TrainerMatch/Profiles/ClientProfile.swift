@@ -1,8 +1,9 @@
+
 //
-//  ClientProfile.swift
+//  ClientProfile.swift (SAFE VERSION)
 //  TrainerMatch
 //
-//  Created by Ramone Hayes on 2/10/26.
+//  Fixed version with safety checks
 //
 
 import SwiftUI
@@ -10,610 +11,506 @@ import SwiftUI
 struct ClientProfileMySpaceView: View {
     let client: ClientProfile
     @State private var selectedTab: ClientProfileTab = .about
+    @EnvironmentObject var authManager: AuthManager
+    @Environment(\.dismiss) var dismiss
     
-    enum ClientProfileTab {
-        case about, goals, health, progress
+    enum ClientProfileTab: String {
+        case about = "About"
+        case goals = "Goals"
+        case health = "Health"
+        case progress = "Progress"
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header Banner with Profile Photo
-                ZStack(alignment: .bottomLeading) {
-                    // Background banner
-                    LinearGradient(
-                        colors: [Color.tmGold, Color.tmGoldDark],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(height: 200)
-                    
-                    // Profile Photo
-                    HStack(spacing: 16) {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.tmGold, Color.tmGoldDark],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 120, height: 120)
-                            .overlay(
-                                Text(client.name.prefix(1))
-                                    .font(.system(size: 48, weight: .bold))
-                                    .foregroundColor(.black)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.black, lineWidth: 4)
-                            )
-                            .offset(y: 40)
-                            .padding(.leading, 20)
-                        
-                        Spacer()
-                    }
-                }
-                .frame(height: 240)
-                
-                // Name and Status
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(client.name)
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 10, height: 10)
-                                
-                                Text("Active Member")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Quick Stats
-                        VStack(spacing: 8) {
-                            ClientStatBubble(icon: "flame.fill", value: "\(client.currentStreak)", label: "Day Streak")
-                            ClientStatBubble(icon: "checkmark.circle.fill", value: "\(client.workoutsCompleted)", label: "Workouts")
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 50)
-                    
-                    // Location and Fitness Level
-                    HStack(spacing: 16) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "mappin.circle.fill")
-                                .foregroundColor(.tmGold)
-                            Text("\(client.city), \(client.state)")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        
-                        HStack(spacing: 6) {
-                            Image(systemName: "chart.bar.fill")
-                                .foregroundColor(.tmGold)
-                            Text(client.fitnessLevel)
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
-                .padding(.bottom, 20)
-                .background(Color.black)
-                
-                // Tab Navigation
-                HStack(spacing: 0) {
-                    ClientProfileTabButton(
-                        icon: "person.circle.fill",
-                        title: "ABOUT",
-                        isSelected: selectedTab == .about,
-                        action: { selectedTab = .about }
-                    )
-                    
-                    ClientProfileTabButton(
-                        icon: "target",
-                        title: "GOALS",
-                        isSelected: selectedTab == .goals,
-                        action: { selectedTab = .goals }
-                    )
-                    
-                    ClientProfileTabButton(
-                        icon: "heart.text.square.fill",
-                        title: "HEALTH",
-                        isSelected: selectedTab == .health,
-                        action: { selectedTab = .health }
-                    )
-                    
-                    ClientProfileTabButton(
-                        icon: "chart.xyaxis.line",
-                        title: "PROGRESS",
-                        isSelected: selectedTab == .progress,
-                        action: { selectedTab = .progress }
-                    )
-                }
-                .background(Color.white.opacity(0.05))
-                
-                // Content Based on Selected Tab
-                switch selectedTab {
-                case .about:
-                    ClientAboutSection(client: client)
-                case .goals:
-                    ClientProfileGoalsSection(client: client)
-                case .health:
-                    ClientProfileHealthSection(client: client)
-                case .progress:
-                    ClientProgressSection(client: client)
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    headerSection
+                    tabNavigation
+                    tabContent
                 }
             }
         }
-        .background(Color.black)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    authManager.logout()
+                    dismiss()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("Logout")
+                    }
+                    .foregroundColor(.tmGold)
+                }
+            }
+        }
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
     }
-}
-
-// MARK: - Client Profile Tab Button
-struct ClientProfileTabButton: View {
-    let icon: String
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
     
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(isSelected ? .tmGold : .white.opacity(0.5))
+    private var headerSection: some View {
+        VStack(spacing: 0) {
+            // Gold Banner
+            ZStack(alignment: .bottomLeading) {
+                LinearGradient(
+                    colors: [Color.tmGold, Color.tmGoldDark],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 200)
                 
-                Text(title)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isSelected ? .tmGold : .white.opacity(0.5))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(
-                isSelected ? Color.tmGold.opacity(0.1) : Color.clear
-            )
-        }
-    }
-}
-
-// MARK: - Client Stat Bubble
-struct ClientStatBubble: View {
-    let icon: String
-    let value: String
-    let label: String
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption2)
-                .foregroundColor(.tmGold)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                Text(label)
-                    .font(.system(size: 9))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.1))
-        )
-    }
-}
-
-// MARK: - Client About Section
-struct ClientAboutSection: View {
-    let client: ClientProfile
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            InfoCard(title: "PERSONAL INFO", icon: "person.fill") {
-                VStack(alignment: .leading, spacing: 12) {
-                    InfoRow(label: "Age", value: "\(client.age)")
-                    InfoRow(label: "Location", value: "\(client.city), \(client.state)")
-                    InfoRow(label: "Member Since", value: client.memberSince.formatted(date: .abbreviated, time: .omitted))
-                    InfoRow(label: "Preferred Training", value: client.preferredServiceType.rawValue)
-                    InfoRow(label: "Fitness Level", value: client.fitnessLevel)
-                }
-            }
-            
-            InfoCard(title: "CURRENT TRAINER", icon: "dumbbell.fill") {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let trainer = client.currentTrainer {
-                        HStack(spacing: 12) {
-                            Circle()
-                                .fill(Color.tmGold)
-                                .frame(width: 50, height: 50)
-                                .overlay(
-                                    Text(trainer.prefix(1))
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.black)
-                                )
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(trainer)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                Text("Personal Trainer")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            
-                            Spacer()
-                            
-                            Button(action: {}) {
-                                Text("VIEW")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.tmGold)
-                                    )
-                            }
-                        }
-                    } else {
-                        Text("No trainer assigned yet")
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-                }
-            }
-            
-            InfoCard(title: "ACTIVITY", icon: "figure.run") {
-                VStack(spacing: 12) {
-                    ActivityStatRow(label: "Current Streak", value: "\(client.currentStreak) days", icon: "flame.fill", color: .orange)
-                    ActivityStatRow(label: "Total Workouts", value: "\(client.workoutsCompleted)", icon: "checkmark.circle.fill", color: .green)
-                    ActivityStatRow(label: "This Week", value: "\(client.workoutsThisWeek)", icon: "calendar", color: .blue)
-                }
-            }
-        }
-        .padding(20)
-    }
-}
-
-// MARK: - Client Profile Goals Section
-struct ClientProfileGoalsSection: View {
-    let client: ClientProfile
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            InfoCard(title: "FITNESS GOALS", icon: "target") {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(client.goals, id: \.self) { goal in
-                        HStack(spacing: 12) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.tmGold)
-                            Text(goal.rawValue)
-                                .font(.body)
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.05))
+                // Profile Circle
+                HStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.tmGold, Color.tmGoldDark],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    }
+                        .frame(width: 120, height: 120)
+                        .overlay(
+                            Text(client.name.prefix(1).uppercased())
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(.black)
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Color.black, lineWidth: 4)
+                        )
+                        .offset(y: 40)
+                        .padding(.leading, 20)
+                    
+                    Spacer()
                 }
             }
+            .frame(height: 240)
             
-            InfoCard(title: "WEIGHT GOALS", icon: "scalemass.fill") {
-                VStack(spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Starting Weight")
+            // Name and Info
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(client.name)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 10, height: 10)
+                            Text("Active Member")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                            Text("\(client.startingWeight) lbs")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.white.opacity(0.8))
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "arrow.right")
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 50)
+                
+                HStack(spacing: 16) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.circle.fill")
                             .foregroundColor(.tmGold)
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Target Weight")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                            Text("\(client.targetWeight) lbs")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.tmGold)
-                        }
+                        Text("\(client.city), \(client.state)")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
                     }
                     
-                    // Progress Bar
-                    let progress = CGFloat(client.startingWeight - client.currentWeight) / CGFloat(client.startingWeight - client.targetWeight)
+                    HStack(spacing: 6) {
+                        Image(systemName: "chart.bar.fill")
+                            .foregroundColor(.tmGold)
+                        Text(client.fitnessLevel)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 20)
+            .background(Color.black)
+        }
+    }
+    
+    private var tabNavigation: some View {
+        HStack(spacing: 0) {
+            ForEach([ClientProfileTab.about, .goals, .health, .progress], id: \.self) { tab in
+                Button(action: {
+                    print("📌 Tab tapped: \(tab.rawValue)")
+                    withAnimation {
+                        selectedTab = tab
+                    }
+                }) {
+                    VStack(spacing: 6) {
+                        Image(systemName: iconFor(tab))
+                            .font(.caption)
+                        Text(tab.rawValue.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(selectedTab == tab ? .tmGold : .white.opacity(0.5))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(selectedTab == tab ? Color.tmGold.opacity(0.1) : Color.clear)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .background(Color.white.opacity(0.05))
+    }
+    
+    @ViewBuilder
+    private var tabContent: some View {
+        Group {
+            switch selectedTab {
+            case .about:
+                aboutContent
+            case .goals:
+                goalsContent
+            case .health:
+                healthContent
+            case .progress:
+                progressContent
+            }
+        }
+        .padding(20)
+    }
+    
+    private var aboutContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("About")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            ClientInfoRow(label: "Age", value: "\(client.age)")
+            ClientInfoRow(label: "Member Since", value: formattedDate(client.memberSince))
+            ClientInfoRow(label: "Fitness Level", value: client.fitnessLevel)
+            ClientInfoRow(label: "Preferred Training", value: client.preferredServiceType.rawValue)
+            
+            if let trainer = client.currentTrainer {
+                ClientInfoRow(label: "Current Trainer", value: trainer)
+            }
+            
+            Divider()
+                .background(Color.white.opacity(0.2))
+                .padding(.vertical, 8)
+            
+            // Health Tracker Link
+            NavigationLink(destination: ContentView()) {
+                HStack {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Current: \(client.currentWeight) lbs")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text("\(Int(progress * 100))% to goal")
-                                .font(.caption)
+                            Image(systemName: "heart.text.square.fill")
+                                .font(.title2)
                                 .foregroundColor(.tmGold)
+                            Text("Health Tracker")
+                                .font(.headline)
+                                .foregroundColor(.white)
                         }
-                        
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.white.opacity(0.1))
-                                
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.tmGold)
-                                    .frame(width: geometry.size.width * max(0, min(1, progress)))
-                            }
-                        }
-                        .frame(height: 8)
-                    }
-                }
-            }
-        }
-        .padding(20)
-    }
-}
-
-// MARK: - Client Profile Health Section
-struct ClientProfileHealthSection: View {
-    let client: ClientProfile
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            // Warning Banner
-            HStack(spacing: 12) {
-                Image(systemName: "exclamationmark.shield.fill")
-                    .foregroundColor(.tmGold)
-                    .font(.title3)
-                
-                Text("This information is confidential and shared only with your trainer for safety.")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.tmGold.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.tmGold, lineWidth: 1)
-                    )
-            )
-            .padding(.horizontal, 20)
-            
-            if !client.medicalConditions.isEmpty {
-                InfoCard(title: "MEDICAL CONDITIONS", icon: "cross.case.fill") {
-                    Text(client.medicalConditions)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineSpacing(4)
-                }
-            }
-            
-            if !client.injuries.isEmpty {
-                InfoCard(title: "INJURIES & LIMITATIONS", icon: "bandage.fill") {
-                    Text(client.injuries)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineSpacing(4)
-                }
-            }
-            
-            if !client.allergies.isEmpty {
-                InfoCard(title: "ALLERGIES", icon: "allergens") {
-                    Text(client.allergies)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineSpacing(4)
-                }
-            }
-            
-            if !client.medications.isEmpty {
-                InfoCard(title: "MEDICATIONS", icon: "pills.fill") {
-                    Text(client.medications)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineSpacing(4)
-                }
-            }
-            
-            if client.medicalConditions.isEmpty && client.injuries.isEmpty &&
-               client.allergies.isEmpty && client.medications.isEmpty {
-                InfoCard(title: "HEALTH STATUS", icon: "checkmark.shield.fill") {
-                    VStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.green)
-                        
-                        Text("No health concerns reported")
-                            .font(.body)
+                        Text("Track your nutrition, water, sleep, and workouts")
+                            .font(.caption)
                             .foregroundColor(.white.opacity(0.7))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.tmGold)
                 }
-            }
-            
-            // Edit Health Info Button
-            Button(action: {}) {
-                HStack {
-                    Image(systemName: "pencil.circle.fill")
-                    Text("UPDATE HEALTH INFORMATION")
-                }
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
+                .padding()
                 .background(
-                    RoundedRectangle(cornerRadius: 22)
-                        .fill(Color.tmGold)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.tmGold, lineWidth: 1)
+                        )
                 )
             }
-            .padding(.horizontal, 20)
+            
+            Divider()
+                .background(Color.white.opacity(0.2))
+                .padding(.vertical, 8)
+            
+            // Account Settings
+            Text("Account")
+                .font(.headline)
+                .foregroundColor(.tmGold)
+            
+            // Logout Button
+            Button(action: {
+                authManager.logout()
+                dismiss()
+            }) {
+                HStack {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.title3)
+                        .foregroundColor(.red)
+                    Text("Logout")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                        )
+                )
+            }
         }
-        .padding(.vertical, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
-}
-
-// MARK: - Client Progress Section
-struct ClientProgressSection: View {
-    let client: ClientProfile
     
-    var body: some View {
-        VStack(spacing: 20) {
-            InfoCard(title: "PROGRESS PHOTOS", icon: "photo.on.rectangle.angled") {
-                if client.progressPhotoCount > 0 {
-                    VStack(spacing: 16) {
-                        Text("\(client.progressPhotoCount) Progress Photos")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.tmGold)
-                        
-                        // Sample photo grid
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(0..<min(6, client.progressPhotoCount), id: \.self) { index in
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.tmGold.opacity(0.3), Color.tmGoldDark.opacity(0.3)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(height: 100)
-                                    
-                                    Image(systemName: "photo.fill")
-                                        .font(.title)
-                                        .foregroundColor(.white)
-                                }
-                            }
-                        }
-                        
-                        Button(action: {}) {
-                            Text("VIEW ALL PHOTOS")
-                                .font(.caption)
-                                .fontWeight(.bold)
+    private var goalsContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Fitness Goals")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            if client.goals.isEmpty {
+                Text("No goals set yet")
+                    .foregroundColor(.white.opacity(0.6))
+                    .padding()
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(client.goals.enumerated()), id: \.offset) { index, goal in
+                        HStack {
+                            Image(systemName: "target")
                                 .foregroundColor(.tmGold)
+                            Text(String(describing: goal))
+                                .foregroundColor(.white)
                         }
                     }
-                } else {
-                    VStack(spacing: 12) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 40))
-                            .foregroundColor(.white.opacity(0.3))
-                        
-                        Text("No progress photos yet")
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.6))
-                        
-                        Text("Upload photos to track your transformation")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.4))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 30)
                 }
             }
             
-            InfoCard(title: "MEASUREMENTS", icon: "ruler.fill") {
-                VStack(spacing: 12) {
-                    MeasurementRow(label: "Chest", value: client.measurements.chest, change: "+2")
-                    MeasurementRow(label: "Waist", value: client.measurements.waist, change: "-3")
-                    MeasurementRow(label: "Hips", value: client.measurements.hips, change: "-1")
-                    MeasurementRow(label: "Arms", value: client.measurements.arms, change: "+1")
+            Divider()
+                .background(Color.white.opacity(0.2))
+                .padding(.vertical, 8)
+            
+            Text("Weight Goals")
+                .font(.headline)
+                .foregroundColor(.tmGold)
+            
+            HStack(spacing: 20) {
+                VStack {
+                    Text("Starting")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("\(client.startingWeight) lbs")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+                
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.tmGold)
+                
+                VStack {
+                    Text("Current")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("\(client.currentWeight) lbs")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.tmGold)
+                }
+                
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.white.opacity(0.3))
+                
+                VStack {
+                    Text("Target")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("\(client.targetWeight) lbs")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
                 }
             }
         }
-        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var healthContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Health Information")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            ClientHealthInfoSection(title: "Medical Conditions", content: client.medicalConditions)
+            ClientHealthInfoSection(title: "Injuries", content: client.injuries)
+            ClientHealthInfoSection(title: "Allergies", content: client.allergies)
+            ClientHealthInfoSection(title: "Medications", content: client.medications)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var progressContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Progress")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            // Health Tracker Link
+            NavigationLink(destination: ContentView()) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "chart.xyaxis.line")
+                                .font(.title2)
+                                .foregroundColor(.tmGold)
+                            Text("Open Health Tracker")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        Text("View detailed daily tracking")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.tmGold)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.tmGold.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.tmGold, lineWidth: 2)
+                        )
+                )
+            }
+            .padding(.bottom, 10)
+            
+            HStack(spacing: 20) {
+                ClientProgressCard(
+                    icon: "flame.fill",
+                    value: "\(client.currentStreak)",
+                    label: "Day Streak",
+                    color: .orange
+                )
+                
+                ClientProgressCard(
+                    icon: "checkmark.circle.fill",
+                    value: "\(client.workoutsCompleted)",
+                    label: "Total Workouts",
+                    color: .green
+                )
+            }
+            
+            ClientProgressCard(
+                icon: "calendar.badge.clock",
+                value: "\(client.workoutsThisWeek)",
+                label: "This Week",
+                color: .tmGold
+            )
+            
+            ClientProgressCard(
+                icon: "photo.fill",
+                value: "\(client.progressPhotoCount)",
+                label: "Progress Photos",
+                color: .blue
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func iconFor(_ tab: ClientProfileTab) -> String {
+        switch tab {
+        case .about: return "person.circle.fill"
+        case .goals: return "target"
+        case .health: return "heart.text.square.fill"
+        case .progress: return "chart.xyaxis.line"
+        }
+    }
+    
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
     }
 }
 
 // MARK: - Supporting Views
-struct ActivityStatRow: View {
+
+struct ClientInfoRow: View {
     let label: String
     let value: String
-    let icon: String
-    let color: Color
     
     var body: some View {
         HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
             Text(label)
-                .font(.body)
-                .foregroundColor(.white)
+                .foregroundColor(.white.opacity(0.6))
             Spacer()
             Text(value)
-                .font(.body)
-                .fontWeight(.bold)
-                .foregroundColor(.tmGold)
+                .foregroundColor(.white)
+                .fontWeight(.semibold)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white.opacity(0.05))
-        )
+        .padding(.vertical, 8)
     }
 }
 
-struct MeasurementRow: View {
-    let label: String
-    let value: Double
-    let change: String
+struct ClientHealthInfoSection: View {
+    let title: String
+    let content: String
     
     var body: some View {
-        HStack {
-            Text(label)
-                .font(.body)
-                .foregroundColor(.white)
-            Spacer()
-            Text("\(String(format: "%.1f", value)) in")
-                .font(.body)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-            Text(change)
-                .font(.caption)
-                .foregroundColor(change.hasPrefix("+") ? .green : .red)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.tmGold)
+            
+            Text(content.isEmpty ? "None reported" : content)
+                .foregroundColor(.white.opacity(0.8))
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.05))
                 )
         }
+    }
+}
+
+struct ClientProgressCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(.white)
+            
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color.white.opacity(0.05))
         )
     }

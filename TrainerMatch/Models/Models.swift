@@ -43,6 +43,114 @@ enum TrainerSpecialty: String, Codable, CaseIterable {
     case other = "Other"
 }
 
+// MARK: - Trainer Certifications (NEW)
+enum TrainerCertification: String, Codable, CaseIterable {
+    // Major Organizations
+    case nasmCpt = "NASM-CPT"
+    case aceCpt = "ACE-CPT"
+    case nscaCscs = "NSCA-CSCS"
+    case nscaCpt = "NSCA-CPT"
+    case ismaCft = "ISMA-CFT"
+    case afaaCpt = "AFAA-CPT"
+    case nfptCpt = "NFPT-CPT"
+    case acsm = "ACSM-CPT"
+    
+    // Specialty Certifications
+    case precisionNutrition = "Precision Nutrition"
+    case nasmCes = "NASM-CES (Corrective Exercise)"
+    case nasmPes = "NASM-PES (Performance)"
+    case aceFitness = "ACE Fitness Nutrition"
+    case crossfitL1 = "CrossFit Level 1"
+    case crossfitL2 = "CrossFit Level 2"
+    case usaWeightlifting = "USA Weightlifting"
+    case usaPowerlifting = "USA Powerlifting"
+    
+    // Yoga & Pilates
+    case ryt200 = "RYT-200 (Yoga)"
+    case ryt500 = "RYT-500 (Yoga)"
+    case pilatesInstructor = "Pilates Instructor"
+    case stottPilates = "STOTT Pilates"
+    
+    // Special Populations
+    case prenatalPostnatal = "Prenatal/Postnatal"
+    case seniorFitness = "Senior Fitness Specialist"
+    case youthFitness = "Youth Fitness Specialist"
+    case cancerExercise = "Cancer Exercise Specialist"
+    
+    // Other
+    case firstAidCpr = "First Aid/CPR"
+    case nutritionist = "Certified Nutritionist"
+    case dietitian = "Registered Dietitian"
+    case other = "Other Certification"
+    
+    var category: String {
+        switch self {
+        case .nasmCpt, .aceCpt, .nscaCscs, .nscaCpt, .ismaCft, .afaaCpt, .nfptCpt, .acsm:
+            return "General CPT"
+        case .precisionNutrition, .nasmCes, .nasmPes, .aceFitness, .crossfitL1, .crossfitL2, .usaWeightlifting, .usaPowerlifting:
+            return "Specialty"
+        case .ryt200, .ryt500, .pilatesInstructor, .stottPilates:
+            return "Yoga/Pilates"
+        case .prenatalPostnatal, .seniorFitness, .youthFitness, .cancerExercise:
+            return "Special Populations"
+        case .firstAidCpr, .nutritionist, .dietitian, .other:
+            return "Other"
+        }
+    }
+}
+
+// MARK: - Training Schools (NEW)
+enum TrainingSchool: String, Codable, CaseIterable {
+    // Major Certification Bodies
+    case nasm = "National Academy of Sports Medicine (NASM)"
+    case ace = "American Council on Exercise (ACE)"
+    case nsca = "National Strength & Conditioning Association (NSCA)"
+    case acsm = "American College of Sports Medicine (ACSM)"
+    case isma = "International Sports Medicine Association (ISMA)"
+    case afaa = "Athletics and Fitness Association of America (AFAA)"
+    case nfpt = "National Federation of Professional Trainers (NFPT)"
+    case issa = "International Sports Sciences Association (ISSA)"
+    
+    // Universities & Colleges
+    case exerciseScience = "Exercise Science Degree Program"
+    case kinesiology = "Kinesiology Degree Program"
+    case sportsScience = "Sports Science Degree Program"
+    case physicalEducation = "Physical Education Degree"
+    case lionelUniversity = "Lionel University"
+    
+    // Specialty Schools
+    case crossfit = "CrossFit Certification"
+    case yogaAlliance = "Yoga Alliance Certified School"
+    case pilatesMethod = "Pilates Method Alliance School"
+    case precisionNutrition = "Precision Nutrition Certification"
+    
+    // Online Platforms
+    case nasmOnline = "NASM Online Learning"
+    case aceOnline = "ACE Online Academy"
+    case nscaOnline = "NSCA Online Education"
+    case issaOnline = "ISSA Online Certification"
+    
+    // Other
+    case apprenticeship = "Apprenticeship/Mentorship"
+    case militaryFitness = "Military Fitness Training"
+    case other = "Other Training Program"
+    
+    var icon: String {
+        switch self {
+        case .nasm, .ace, .nsca, .acsm, .isma, .afaa, .nfpt, .issa:
+            return "building.columns.fill"
+        case .exerciseScience, .kinesiology, .sportsScience, .physicalEducation, .lionelUniversity:
+            return "graduationcap.fill"
+        case .crossfit, .yogaAlliance, .pilatesMethod, .precisionNutrition:
+            return "figure.strengthtraining.traditional"
+        case .nasmOnline, .aceOnline, .nscaOnline, .issaOnline:
+            return "laptopcomputer"
+        case .apprenticeship, .militaryFitness, .other:
+            return "person.fill"
+        }
+    }
+}
+
 // MARK: - Service Type
 enum ServiceType: String, Codable, CaseIterable {
     case inPerson = "In-Person"
@@ -108,17 +216,76 @@ struct Client: Identifiable, Codable {
     var trainerNotes: String?
 }
 
-// MARK: - Fitness Goals
+// MARK: - Fitness Goals (EXPANDED)
 enum FitnessGoal: String, Codable, CaseIterable {
+    // Weight Management
     case weightLoss = "Weight Loss"
-    case muscleGain = "Muscle Gain"
+    case toneUp = "Tone & Sculpt"
+    case muscleGain = "Build Muscle"
+    case bodyRecomposition = "Body Recomposition"
+    
+    // Health & Wellness
     case generalFitness = "General Fitness"
+    case improveHealth = "Improve Overall Health"
+    case heartHealth = "Cardiovascular Health"
+    case betterSleep = "Better Sleep"
+    case increaseEnergy = "Increase Energy"
+    case stressRelief = "Reduce Stress"
+    
+    // Performance
     case athleticPerformance = "Athletic Performance"
+    case increaseStrength = "Increase Strength"
+    case buildEndurance = "Build Endurance"
+    case improveSpeed = "Improve Speed & Agility"
+    
+    // Flexibility & Recovery
     case flexibility = "Flexibility & Mobility"
-    case rehabilitation = "Rehabilitation"
-    case stressRelief = "Stress Relief"
+    case rehabilitation = "Injury Rehabilitation"
+    case preventInjury = "Injury Prevention"
+    case posture = "Improve Posture"
+    
+    // Lifestyle & Events
+    case wedding = "Wedding Preparation"
+    case postPregnancy = "Post-Pregnancy Recovery"
+    case seniorFitness = "Active Aging/Senior Fitness"
+    case sportSpecific = "Sport-Specific Training"
+    
+    // Support & Guidance
     case nutrition = "Nutrition Guidance"
     case accountability = "Accountability & Motivation"
+    case learnProperForm = "Learn Proper Form"
+    case buildConfidence = "Build Confidence"
+    
+    var icon: String {
+        switch self {
+        case .weightLoss: return "scalemass"
+        case .toneUp: return "figure.strengthtraining.traditional"
+        case .muscleGain: return "dumbbell.fill"
+        case .bodyRecomposition: return "chart.line.uptrend.xyaxis"
+        case .generalFitness: return "heart.fill"
+        case .improveHealth: return "cross.case.fill"
+        case .heartHealth: return "heart.circle.fill"
+        case .betterSleep: return "bed.double.fill"
+        case .increaseEnergy: return "bolt.fill"
+        case .stressRelief: return "brain.head.profile"
+        case .athleticPerformance: return "sportscourt.fill"
+        case .increaseStrength: return "figure.strengthtraining.traditional"
+        case .buildEndurance: return "figure.run"
+        case .improveSpeed: return "hare.fill"
+        case .flexibility: return "figure.yoga"
+        case .rehabilitation: return "bandage.fill"
+        case .preventInjury: return "shield.fill"
+        case .posture: return "figure.stand"
+        case .wedding: return "heart.circle"
+        case .postPregnancy: return "figure.and.child.holdinghands"
+        case .seniorFitness: return "figure.walk"
+        case .sportSpecific: return "tennis.racket"
+        case .nutrition: return "carrot.fill"
+        case .accountability: return "checkmark.circle.fill"
+        case .learnProperForm: return "eye.fill"
+        case .buildConfidence: return "star.fill"
+        }
+    }
 }
 
 // MARK: - Exercise Model
